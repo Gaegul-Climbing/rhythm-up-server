@@ -1,0 +1,86 @@
+# Practice Server endpoints
+
+GET http://127.0.0.1:8000/health
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/auth/signup
+Content-Type: application/json
+
+{
+  "email": "member@example.com",
+  "password": "correct-password",
+  "name": "연습생",
+  "phone": "010-1234-5678"
+}
+
+###
+
+POST http://127.0.0.1:8000/auth/login
+Content-Type: application/x-www-form-urlencoded
+
+username=member@example.com&password=correct-password
+
+###
+
+GET http://127.0.0.1:8000/users/me
+Authorization: Bearer {{access_token}}
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/branches
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/branches/10000000-0000-0000-0000-000000000001
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/branches/10000000-0000-0000-0000-000000000001/rooms
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/branches/10000000-0000-0000-0000-000000000001/rooms/20000000-0000-0000-0000-000000000001
+Accept: application/json
+
+###
+
+GET http://127.0.0.1:8000/branches/10000000-0000-0000-0000-000000000001/rooms/20000000-0000-0000-0000-000000000001/availability?date={{reservation_date}}
+Accept: application/json
+
+###
+
+POST http://127.0.0.1:8000/reservation-holds
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+
+{
+  "branch_id": "10000000-0000-0000-0000-000000000001",
+  "room_id": "20000000-0000-0000-0000-000000000001",
+  "start_at": "{{reservation_start_at}}",
+  "duration_hours": 2
+}
+
+###
+
+POST http://127.0.0.1:8000/reservations
+Authorization: Bearer {{access_token}}
+Idempotency-Key: {{idempotency_key}}
+Content-Type: application/json
+
+{
+  "hold_id": "{{hold_id}}"
+}
+
+###
+
+GET http://127.0.0.1:8000/reservations
+Authorization: Bearer {{access_token}}
+Accept: application/json
+
+###

@@ -1,0 +1,23 @@
+.auth-shell {
+  padding: 10px 34px 34px; border: 1px solid var(--color-line);
+  border-radius: 26px; background: var(--color-white); box-shadow: var(--shadow-large);
+}
+.auth-tabs { display: flex; margin-bottom: 28px; border-bottom: 1px solid var(--color-line); }
+.auth-tabs button {
+  flex: 1; padding: 18px; border: 0; background: none;
+  color: var(--color-muted); font-weight: 800; cursor: pointer;
+}
+.auth-tabs button.active {
+  border-bottom: 3px solid var(--color-ink); color: var(--color-ink);
+}
+.auth-form { display: grid; gap: 18px; }
+.auth-form label { font-size: 13px; font-weight: 700; }
+.auth-form input, .date-row input, .date-row select {
+  display: block; width: 100%; margin-top: 8px; padding: 14px;
+  border: 1px solid var(--color-line); border-radius: 12px;
+  outline: none; background: var(--color-paper);
+}
+.auth-form input:focus {
+  border-color: var(--color-purple); box-shadow: 0 0 0 3px rgb(123 108 255 / 13%);
+}
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }

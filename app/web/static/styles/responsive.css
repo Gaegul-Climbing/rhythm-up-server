@@ -1,0 +1,23 @@
+@media (max-width: 850px) {
+  .topbar nav { display: none; }
+  .hero-art { right: -20%; width: 80vw; height: 80vw; opacity: 0.35; }
+  .hero-copy { padding-top: 4vh; }
+  .choice-grid, .room-grid { grid-template-columns: 1fr 1fr; }
+  .checkout { grid-template-columns: 1fr auto; }
+  .checkout button { grid-column: 1 / -1; }
+  .ticker { font-size: 11px; }
+  .floating-card { display: none; }
+}
+
+@media (max-width: 560px) {
+  .hero { padding: 8vh 20px; }
+  .narrow, .wide { padding: 45px 16px; }
+  .choice-grid, .room-grid, .two, .date-row { grid-template-columns: 1fr; }
+  .progress span { display: none; }
+  .auth-shell { padding: 8px 20px 24px; }
+  .section-head.row { align-items: center; }
+  .reservation-card { grid-template-columns: 65px 1fr; }
+  .reservation-card .status { grid-column: 2; }
+  .checkout { position: relative; bottom: auto; grid-template-columns: 1fr; }
+  .checkout-price { padding-top: 15px; border-top: 1px solid rgb(255 255 255 / 19%); }
+}

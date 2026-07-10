@@ -1,0 +1,35 @@
+.toast {
+  position: fixed; z-index: 20; right: 24px; bottom: 24px;
+  padding: 14px 20px; border-radius: 12px;
+  background: var(--color-ink); color: white;
+  opacity: 0; transform: translateY(100px); transition: 0.3s;
+}
+.toast.show { opacity: 1; transform: none; }
+.modal {
+  position: fixed; z-index: 30; inset: 0;
+  display: grid; place-items: center; padding: 20px;
+  background: rgb(17 17 24 / 80%);
+}
+.modal-card {
+  width: 100%; max-width: 460px; padding: 45px;
+  border-radius: 28px; background: var(--color-white); text-align: center;
+}
+.modal-card h2 { font-size: 28px; }
+.modal-card > p:not(.kicker) { color: var(--color-muted); }
+.spinner {
+  width: 58px; height: 58px; margin: 0 auto 25px;
+  border: 6px solid var(--color-line); border-top-color: var(--color-purple);
+  border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.success-mark {
+  display: grid; place-items: center; width: 65px; height: 65px;
+  margin: 0 auto 22px; border-radius: 50%;
+  background: var(--color-lime); font-size: 32px; font-weight: 900;
+}
+.skeleton {
+  height: 135px; border-radius: var(--radius-large);
+  background: linear-gradient(90deg, #e7e2d8, #f6f2e9, #e7e2d8);
+  background-size: 200%; animation: shine 1.2s infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes shine { to { background-position: -200%; } }

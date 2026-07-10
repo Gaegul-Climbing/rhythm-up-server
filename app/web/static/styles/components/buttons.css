@@ -1,0 +1,27 @@
+.primary {
+  padding: 15px 22px;
+  border: 0;
+  border-radius: var(--radius-medium);
+  background: var(--color-ink);
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 9px 20px rgb(21 21 29 / 19%);
+}
+.primary.big {
+  margin-top: 24px;
+  padding: 18px 24px;
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+.primary.big span { margin-left: 30px; }
+.ghost {
+  padding: 9px 17px !important;
+  border: 1px solid var(--color-ink) !important;
+  border-radius: var(--radius-round) !important;
+  font-weight: 700 !important;
+}

@@ -1,0 +1,18 @@
+:root {
+  --color-ink: #15151d;
+  --color-paper: #f5f1e8;
+  --color-lime: #dfff68;
+  --color-purple: #7b6cff;
+  --color-coral: #ff7058;
+  --color-white: #fffdf8;
+  --color-muted: #77766f;
+  --color-line: #dcd7cc;
+  --shadow-card: 0 6px 20px rgb(34 34 34 / 7%);
+  --shadow-large: 0 18px 50px rgb(27 25 33 / 9%);
+  --radius-small: 10px;
+  --radius-medium: 14px;
+  --radius-large: 22px;
+  --radius-round: 999px;
+  --content-width: 1140px;
+  --header-height: 78px;
+}

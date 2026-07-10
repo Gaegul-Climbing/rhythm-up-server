@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>리듬업 연습실</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://js.tosspayments.com/v2/standard"></script>
+  <script type="module" src="/static/app.js"></script>
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <button class="brand" data-view="home">
+      <span class="brand-mark">R</span>
+      <span>리듬업</span>
+    </button>
+    <nav>
+      <button data-view="booking">공간 예약</button>
+      <button data-view="reservations">내 예약</button>
+    </nav>
+    <button id="authButton" class="ghost" data-view="auth">로그인</button>
+  </header>
+
+  <main>
+    <section id="homeView" class="view active hero">
+      <div class="hero-copy">
+        <p class="kicker">PRACTICE, YOUR WAY</p>
+        <h1>당신의 다음<br><em>한 소절</em>을 위해.</h1>
+        <p class="hero-desc">보컬 한 곡, 밴드 한 세트, 안무 한 장면.<br>가까운 리듬업에서 바로 시작하세요.</p>
+        <button class="primary big" data-view="booking">연습실 찾아보기 <span>→</span></button>
+      </div>
+      <div class="hero-art">
+        <div class="record"><div></div></div>
+        <div class="floating-card card-one"><span>오늘의 예약</span><b>성수 · 보컬 A</b><small>19:00 — 21:00</small></div>
+        <div class="floating-card card-two"><b>♫</b><span>Make some noise.</span></div>
+      </div>
+      <div class="ticker"><span>VOCAL</span><i>✦</i><span>BAND</span><i>✦</i><span>DANCE</span><i>✦</i><span>REPEAT</span></div>
+    </section>
+
+    <section id="authView" class="view narrow">
+      <div class="section-head"><p class="kicker">WELCOME</p><h2>연습을 시작해볼까요?</h2></div>
+      <div class="auth-shell">
+        <div class="auth-tabs"><button class="active" data-auth-tab="login">로그인</button><button data-auth-tab="signup">회원가입</button></div>
+        <form id="loginForm" class="auth-form">
+          <label>이메일<input type="email" name="email" placeholder="you@example.com" required></label>
+          <label>비밀번호<input type="password" name="password" placeholder="8자 이상" required></label>
+          <button class="primary" type="submit">로그인</button>
+        </form>
+        <form id="signupForm" class="auth-form hidden">
+          <div class="two"><label>이름<input name="name" required></label><label>연락처<input name="phone" placeholder="010-1234-5678" required></label></div>
+          <label>이메일<input type="email" name="email" required></label>
+          <label>비밀번호<input type="password" name="password" minlength="8" required></label>
+          <button class="primary" type="submit">회원가입 후 로그인</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="bookingView" class="view wide">
+      <div class="section-head"><p class="kicker">BOOK A ROOM</p><h2>오늘은 어떤 연습인가요?</h2><p>지점부터 시간까지 차례로 골라주세요.</p></div>
+      <div class="progress"><div class="on"><b>1</b><span>지점</span></div><i></i><div><b>2</b><span>공간</span></div><i></i><div><b>3</b><span>시간</span></div><i></i><div><b>4</b><span>결제</span></div></div>
+      <div id="branchGrid" class="choice-grid loading"><div class="skeleton"></div><div class="skeleton"></div></div>
+      <div id="roomPanel" class="booking-panel hidden"><div class="panel-title"><span>02</span><h3>연습실을 선택하세요</h3></div><div id="roomGrid" class="room-grid"></div></div>
+      <div id="timePanel" class="booking-panel hidden"><div class="panel-title"><span>03</span><h3>날짜와 시간을 선택하세요</h3></div><div class="date-row"><input id="bookingDate" type="date"><select id="duration"><option value="1">1시간</option><option value="2">2시간</option><option value="3">3시간</option><option value="4">4시간</option></select></div><div id="slotGrid" class="slots"></div></div>
+      <aside id="checkout" class="checkout hidden"><div><small>예약 요약</small><h3 id="checkoutTitle">연습실</h3><p id="checkoutTime"></p></div><div class="checkout-price"><span>결제 금액</span><b id="checkoutPrice">0원</b></div><button id="payButton" class="primary">모의 결제로 예약 확정</button></aside>
+    </section>
+
+    <section id="reservationsView" class="view wide">
+      <div class="section-head row"><div><p class="kicker">MY SESSIONS</p><h2>내 예약</h2></div><button class="primary" data-view="booking">새 예약</button></div>
+      <div id="reservationList" class="reservation-list"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <div id="paymentModal" class="modal hidden"><div class="modal-card"><div id="paySpinner" class="spinner"></div><div id="paySuccess" class="success-mark hidden">✓</div><p class="kicker">LOCAL PAYMENT</p><h2 id="payTitle">결제를 승인하고 있어요</h2><p id="payMessage">잠시만 기다려 주세요. 예약까지 안전하게 확정할게요.</p><button id="modalClose" class="primary hidden">내 예약 확인</button></div></div>
+</body></html>

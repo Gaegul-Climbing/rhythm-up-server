@@ -1,0 +1,35 @@
+.topbar {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--header-height);
+  padding: 0 clamp(20px, 4vw, 64px);
+  border-bottom: 1px solid rgb(36 35 42 / 11%);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: none;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-ink);
+  color: var(--color-lime);
+}
+.topbar nav { display: flex; gap: 30px; }
+.topbar nav button, .topbar > button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
