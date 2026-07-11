@@ -220,7 +220,7 @@ docker compose --profile test down
 
 브랜치 전략, PR 작성 방식, Squash merge, Conventional Commit 방향, Branch protection 권장 설정은 [CONTRIBUTING.md](CONTRIBUTING.md)를 기준으로 관리합니다.
 
-GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙을 기반으로 단계적으로 추가합니다.
+GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙을 기반으로 운영합니다. 커밋 타입별 버전 정책과 릴리즈 흐름은 [CONTRIBUTING.md](CONTRIBUTING.md)의 "릴리즈 운영 흐름"을 참고합니다.
 
 현재 구성된 자동화:
 
