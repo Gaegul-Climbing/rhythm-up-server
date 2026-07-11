@@ -112,3 +112,15 @@
 
 - [ ] 앱 이미지를 기반으로 인프라 학습용 배포 구성 시작
 - [ ] 로컬 Compose에서 운영형 Compose/Kubernetes/Terraform 등으로 확장 검토
+
+## 11. GitHub 기반 운영 자동화
+
+- [x] 저장소 운영 규칙 문서화
+- [x] 브랜치 전략과 PR 규칙 정리
+- [x] Squash merge와 Branch protection 권장 기준 정리
+- [x] Conventional Commit 방향 정리
+- [x] GitHub Actions 기본 CI 구성
+- [x] Release Please 구성
+- [x] Docker image release workflow 구성
+- [x] Dependabot 구성
+- [x] README에 CI/Release badge 추가

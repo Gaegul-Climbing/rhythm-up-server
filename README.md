@@ -1,5 +1,9 @@
 # Practice Server
 
+[![CI](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/ci.yml)
+[![Release Please](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/release-please.yml/badge.svg)](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/release-please.yml)
+[![Docker Release](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/docker-release.yml/badge.svg)](https://github.com/Gaegul-Climbing/rhythm-up-server/actions/workflows/docker-release.yml)
+
 프랜차이즈 공유 연습실 예약 서비스인 **리듬업 연습실**의 FastAPI 기반 연습 프로젝트입니다.
 
 서비스는 회원가입/로그인, 지점과 연습실 조회, 예약 가능 시간 조회, Redis 기반 임시 선점, 예약 확정, 로컬 목 결제, 토스페이먼츠 테스트 결제 흐름을 제공합니다.
@@ -211,3 +215,16 @@ docker compose --profile test down
 - DB 마이그레이션 실행 전략
 - 컨테이너 이미지 태깅과 배포 파이프라인
 - 로그 수집과 모니터링
+
+## GitHub 운영 규칙
+
+브랜치 전략, PR 작성 방식, Squash merge, Conventional Commit 방향, Branch protection 권장 설정은 [CONTRIBUTING.md](CONTRIBUTING.md)를 기준으로 관리합니다.
+
+GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙을 기반으로 단계적으로 추가합니다.
+
+현재 구성된 자동화:
+
+- `.github/workflows/ci.yml`: PR과 `main` push에서 lint, test, integration test, Docker build 검증
+- `.github/workflows/release-please.yml`: `main` push 후 Conventional Commit 기반 Release PR 생성
+- `.github/workflows/docker-release.yml`: GitHub Release 발행 시 GHCR 이미지 push
+- `.github/dependabot.yml`: GitHub Actions, Python, Docker 의존성 업데이트 PR 생성

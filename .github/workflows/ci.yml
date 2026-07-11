@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    name: Lint and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Lint
+        run: python -m ruff check app tests
+
+      - name: Test
+        env:
+          APP_ENV: test
+          JWT_SECRET_KEY: test-secret-key
+          PAYMENT_PROVIDER: local
+        run: python -m pytest
+
+  integration-test:
+    name: PostgreSQL and Redis integration test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: practice_test
+          POSTGRES_USER: practice
+          POSTGRES_PASSWORD: practice
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U practice -d practice_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: test
+      LOG_LEVEL: INFO
+      DATABASE_URL: postgresql+asyncpg://practice:practice@localhost:5432/practice_test
+      DATABASE_ECHO: "false"
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET_KEY: test-secret-key
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      BUSINESS_TIMEZONE: Asia/Seoul
+      RESERVATION_HOLD_TTL_SECONDS: "300"
+      REDIS_KEY_PREFIX: practice-server-test
+      PAYMENT_PROVIDER: local
+      LOCAL_PAYMENT_STATE_TTL_SECONDS: "86400"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Create test env file
+        run: |
+          cat > .env.test <<EOF
+          APP_ENV=${APP_ENV}
+          LOG_LEVEL=${LOG_LEVEL}
+          DATABASE_URL=${DATABASE_URL}
+          DATABASE_ECHO=${DATABASE_ECHO}
+          REDIS_URL=${REDIS_URL}
+          JWT_SECRET_KEY=${JWT_SECRET_KEY}
+          JWT_ACCESS_TOKEN_EXPIRE_MINUTES=${JWT_ACCESS_TOKEN_EXPIRE_MINUTES}
+          BUSINESS_TIMEZONE=${BUSINESS_TIMEZONE}
+          RESERVATION_HOLD_TTL_SECONDS=${RESERVATION_HOLD_TTL_SECONDS}
+          REDIS_KEY_PREFIX=${REDIS_KEY_PREFIX}
+          PAYMENT_PROVIDER=${PAYMENT_PROVIDER}
+          LOCAL_PAYMENT_STATE_TTL_SECONDS=${LOCAL_PAYMENT_STATE_TTL_SECONDS}
+          EOF
+
+      - name: Run migrations
+        run: python -m alembic upgrade head
+
+      - name: Run integration tests
+        run: python -m pytest -m integration
+
+  docker-build:
+    name: Docker build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build --tag rhythm-up-server:ci .
