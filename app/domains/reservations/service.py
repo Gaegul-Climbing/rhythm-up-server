@@ -50,14 +50,11 @@ async def confirm_reservation(
     user_id: UUID,
     hold_id: UUID,
     idempotency_key: str,
-    payment_order_id: UUID | None = None,
+    payment_order_id: UUID,
     now: datetime.datetime | None = None,
 ) -> Reservation:
     existing = await get_reservation_by_idempotency_key(session, user_id, idempotency_key)
     if existing is not None:
-        if payment_order_id is not None and existing.payment_order_id is None:
-            existing.payment_order_id = payment_order_id
-            await session.commit()
         return existing
 
     hold = await get_user_hold(store=store, user_id=user_id, hold_id=hold_id)

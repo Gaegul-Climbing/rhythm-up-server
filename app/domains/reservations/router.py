@@ -1,8 +1,7 @@
 import datetime
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Response, status
+from fastapi import APIRouter, Response, status
 
 from app.database.dependencies import SessionDependency
 from app.domains.accounts.dependencies import CurrentUserDependency
@@ -17,12 +16,10 @@ from app.domains.reservations.schemas import (
     AvailabilityResponse,
     HoldCreateRequest,
     HoldResponse,
-    ReservationCreateRequest,
     ReservationResponse,
 )
 from app.domains.reservations.service import (
     cancel_reservation,
-    confirm_reservation,
     find_user_reservation,
     find_user_reservations,
 )
@@ -104,31 +101,6 @@ async def delete_reservation_hold(
 ) -> Response:
     await release_user_hold(store=store, user_id=current_user.id, hold_id=hold_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
-
-
-@router.post(
-    "/reservations",
-    response_model=ReservationResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_reservation(
-    request: ReservationCreateRequest,
-    idempotency_key: Annotated[
-        str,
-        Header(alias="Idempotency-Key", min_length=8, max_length=100),
-    ],
-    current_user: CurrentUserDependency,
-    session: SessionDependency,
-    store: HoldStoreDependency,
-) -> ReservationResponse:
-    reservation = await confirm_reservation(
-        session=session,
-        store=store,
-        user_id=current_user.id,
-        hold_id=request.hold_id,
-        idempotency_key=idempotency_key,
-    )
-    return ReservationResponse.model_validate(reservation)
 
 
 @router.get("/reservations", response_model=list[ReservationResponse])

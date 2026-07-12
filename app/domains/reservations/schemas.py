@@ -37,10 +37,6 @@ class HoldResponse(BaseModel):
     expires_at: datetime.datetime
 
 
-class ReservationCreateRequest(BaseModel):
-    hold_id: UUID
-
-
 class ReservationResponse(BaseModel):
     id: UUID
     user_id: UUID

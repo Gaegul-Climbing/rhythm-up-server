@@ -115,6 +115,37 @@ async def create_hold(
     return response.json()
 
 
+async def confirm_hold_via_payment(
+    client: AsyncClient,
+    headers: dict[str, str],
+    hold_id: str,
+    *,
+    key_suffix: str,
+) -> dict:
+    order = await client.post(
+        "/payment-orders",
+        headers={**headers, "Idempotency-Key": f"order-{key_suffix}"},
+        json={"hold_id": hold_id},
+    )
+    assert order.status_code == 201, order.text
+    payment = await client.post(
+        "/payments",
+        headers={**headers, "Idempotency-Key": f"payment-{key_suffix}"},
+        json={"order_id": order.json()["id"]},
+    )
+    assert payment.status_code == 201, payment.text
+    completed = await client.post(
+        f"/mock-payment-provider/payments/{payment.json()['id']}/complete",
+        headers=headers,
+        json={"outcome": "approved", "deliver_event": True},
+    )
+    assert completed.status_code == 200, completed.text
+    reservations = await client.get("/reservations", headers=headers)
+    assert reservations.status_code == 200
+    assert len(reservations.json()) == 1
+    return reservations.json()[0]
+
+
 async def test_availability_reflects_hold_and_release(
     client: AsyncClient,
     reservation_data: ReservationTestData,
@@ -194,35 +225,41 @@ async def test_user_can_have_only_one_active_hold(
     assert response.json()["error"]["code"] == "reservation_time_conflict"
 
 
-async def test_confirm_is_idempotent_and_reservation_can_be_cancelled(
+async def test_reservation_cannot_be_confirmed_without_payment_approval(
+    client: AsyncClient,
+    reservation_data: ReservationTestData,
+) -> None:
+    headers = await create_member(client, "direct-confirm")
+    hold = await create_hold(client, headers, reservation_data)
+
+    response = await client.post(
+        "/reservations",
+        headers={**headers, "Idempotency-Key": "direct-confirm-0001"},
+        json={"hold_id": hold["id"]},
+    )
+
+    assert response.status_code == 405
+
+
+async def test_reservation_can_be_cancelled_after_payment_approval(
     client: AsyncClient,
     reservation_data: ReservationTestData,
 ) -> None:
     headers = await create_member(client)
     hold = await create_hold(client, headers, reservation_data)
-    confirmation_headers = {**headers, "Idempotency-Key": "confirm-test-0001"}
-
-    first = await client.post(
-        "/reservations",
-        headers=confirmation_headers,
-        json={"hold_id": hold["id"]},
+    reservation = await confirm_hold_via_payment(
+        client,
+        headers,
+        hold["id"],
+        key_suffix="reservation-cancel",
     )
-    second = await client.post(
-        "/reservations",
-        headers=confirmation_headers,
-        json={"hold_id": hold["id"]},
-    )
-
-    assert first.status_code == 201
-    assert second.status_code == 201
-    assert first.json()["id"] == second.json()["id"]
 
     listing = await client.get("/reservations", headers=headers)
     assert listing.status_code == 200
     assert len(listing.json()) == 1
 
     cancelled = await client.delete(
-        f"/reservations/{first.json()['id']}",
+        f"/reservations/{reservation['id']}",
         headers=headers,
     )
     assert cancelled.status_code == 200
@@ -248,12 +285,12 @@ async def test_user_cannot_hold_another_room_at_reserved_time(
 ) -> None:
     headers = await create_member(client)
     hold = await create_hold(client, headers, reservation_data)
-    confirmed = await client.post(
-        "/reservations",
-        headers={**headers, "Idempotency-Key": "confirm-test-0002"},
-        json={"hold_id": hold["id"]},
+    await confirm_hold_via_payment(
+        client,
+        headers,
+        hold["id"],
+        key_suffix="user-conflict",
     )
-    assert confirmed.status_code == 201
 
     response = await client.post(
         "/reservation-holds",
@@ -277,15 +314,15 @@ async def test_cancellation_is_rejected_within_24_hours(
 ) -> None:
     headers = await create_member(client, "deadline")
     hold = await create_hold(client, headers, reservation_data)
-    confirmed = await client.post(
-        "/reservations",
-        headers={**headers, "Idempotency-Key": "confirm-deadline"},
-        json={"hold_id": hold["id"]},
+    reservation = await confirm_hold_via_payment(
+        client,
+        headers,
+        hold["id"],
+        key_suffix="deadline",
     )
-    assert confirmed.status_code == 201
     user = await db_session.scalar(select(User).where(User.email == "member-deadline@example.com"))
     assert user is not None
-    reservation_id = UUID(confirmed.json()["id"])
+    reservation_id = UUID(reservation["id"])
     start_utc = reservation_data.start_at.astimezone(datetime.UTC)
 
     with pytest.raises(ApplicationError) as captured:
@@ -306,12 +343,12 @@ async def test_database_constraint_prevents_double_booking(
 ) -> None:
     first_headers = await create_member(client, "constraint-first")
     hold = await create_hold(client, first_headers, reservation_data)
-    confirmed = await client.post(
-        "/reservations",
-        headers={**first_headers, "Idempotency-Key": "confirm-constraint-first"},
-        json={"hold_id": hold["id"]},
+    await confirm_hold_via_payment(
+        client,
+        first_headers,
+        hold["id"],
+        key_suffix="constraint-first",
     )
-    assert confirmed.status_code == 201
 
     await create_member(client, "constraint-second")
     second_user = await db_session.scalar(
