@@ -222,6 +222,8 @@ docker compose --profile test down
 
 GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙을 기반으로 운영합니다. 커밋 타입별 버전 정책과 릴리즈 흐름은 [CONTRIBUTING.md](CONTRIBUTING.md)의 "릴리즈 운영 흐름"을 참고합니다.
 
+워크플로우별 실행 조건, job 구성, 이미지 태그, GitHub 설정, 장애 대응은 [CI/CD 자동화 가이드](docs/ci-cd.md)에서 확인할 수 있습니다.
+
 현재 구성된 자동화:
 
 - `.github/workflows/ci.yml`: PR과 `main` push에서 lint, test, integration test, Docker build 검증
