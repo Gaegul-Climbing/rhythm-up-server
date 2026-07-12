@@ -3,6 +3,8 @@ import { $, showToast } from "../core/dom.js";
 import { createId } from "../core/format.js";
 import { state } from "../core/state.js";
 
+const tossRedirectStorageKey = "rhythm-up:toss-redirect";
+
 function openPaymentModal(message = "결제를 준비하고 있어요.") {
   $("#paymentModal").classList.remove("hidden");
   $("#paySpinner").classList.remove("hidden");
@@ -152,27 +154,38 @@ async function pay(showView) {
 async function handleTossRedirect(showView) {
   const params = new URLSearchParams(window.location.search);
   const result = params.get("paymentResult");
+  const redirect = result
+    ? {
+        result,
+        message: params.get("message"),
+        paymentKey: params.get("paymentKey"),
+        orderId: params.get("orderId"),
+        amount: params.get("amount"),
+      }
+    : JSON.parse(window.sessionStorage.getItem(tossRedirectStorageKey) || "null");
 
-  if (!result) {
+  if (!redirect) {
     return;
   }
 
-  window.history.replaceState({}, document.title, window.location.pathname);
+  window.sessionStorage.setItem(tossRedirectStorageKey, JSON.stringify(redirect));
   openPaymentModal("토스페이먼츠 결제 결과를 서버에서 승인하고 있어요.");
 
-  if (result === "fail") {
+  if (redirect.result === "fail") {
+    clearTossRedirect();
     showPaymentError(
-      new Error(params.get("message") || "결제가 취소되었거나 실패했습니다."),
+      new Error(redirect.message || "결제가 취소되었거나 실패했습니다."),
     );
     return;
   }
 
   try {
     await confirmTossPayment({
-      paymentKey: params.get("paymentKey"),
-      orderId: params.get("orderId"),
-      amount: params.get("amount"),
+      paymentKey: redirect.paymentKey,
+      orderId: redirect.orderId,
+      amount: redirect.amount,
     });
+    clearTossRedirect();
     showPaymentSuccess("토스페이먼츠 결제가 승인되었고 예약이 확정되었습니다.");
     showView("reservations");
   } catch (error) {
@@ -182,6 +195,11 @@ async function handleTossRedirect(showView) {
     }
     showPaymentError(error);
   }
+}
+
+function clearTossRedirect() {
+  window.sessionStorage.removeItem(tossRedirectStorageKey);
+  window.history.replaceState({}, document.title, window.location.pathname);
 }
 
 export function initPayment(showView) {

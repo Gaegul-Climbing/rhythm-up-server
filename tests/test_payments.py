@@ -6,6 +6,7 @@ from httpx import AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.time import load_timezone
 from app.domains.branches.models import Branch, BranchStatus, Room, RoomStatus, RoomType
 from app.domains.payments.models import PaymentEvent
@@ -156,11 +157,15 @@ async def test_pending_payment_can_be_cancelled(
 
 
 @pytest.mark.asyncio
-async def test_toss_checkout_urls_use_current_request_origin(
+async def test_toss_checkout_urls_use_configured_public_urls(
     client: AsyncClient,
     db_session: AsyncSession,
     payment_provider,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setenv("TOSS_PAYMENTS_SUCCESS_URL", "https://rhythm-up.example/success")
+    monkeypatch.setenv("TOSS_PAYMENTS_FAIL_URL", "https://rhythm-up.example/fail")
+    get_settings.cache_clear()
     payment_provider.name = "toss"
     headers, hold = await setup_member_room(client, db_session, suffix="toss-url")
     order = await client.post(
@@ -180,5 +185,6 @@ async def test_toss_checkout_urls_use_current_request_origin(
 
     assert payment.status_code == 201, payment.text
     checkout = payment.json()["checkout"]
-    assert checkout["success_url"] == "http://127.0.0.1:8000/?paymentResult=success"
-    assert checkout["fail_url"] == "http://127.0.0.1:8000/?paymentResult=fail"
+    assert checkout["success_url"] == "https://rhythm-up.example/success"
+    assert checkout["fail_url"] == "https://rhythm-up.example/fail"
+    get_settings.cache_clear()

@@ -2,7 +2,7 @@ import logging
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Header, Request, status
+from fastapi import APIRouter, Header, status
 
 from app.core.config import get_settings
 from app.database.dependencies import SessionDependency
@@ -47,16 +47,12 @@ def build_payment_response(payment, *, checkout: PaymentCheckoutResponse | None 
     return response
 
 
-def build_toss_checkout(payment, request: Request | None = None) -> PaymentCheckoutResponse | None:
+def build_toss_checkout(payment) -> PaymentCheckoutResponse | None:
     if payment.provider != "toss" or payment.status != PaymentStatus.PENDING:
         return None
     settings = get_settings()
     success_url = settings.toss_payments_success_url
     fail_url = settings.toss_payments_fail_url
-    if request is not None:
-        origin = str(request.base_url).rstrip("/")
-        success_url = f"{origin}/?paymentResult=success"
-        fail_url = f"{origin}/?paymentResult=fail"
     return PaymentCheckoutResponse(
         provider="toss",
         client_key=settings.toss_payments_client_key,
@@ -101,7 +97,6 @@ async def read_payment_order(
 @router.post("/payments", response_model=PaymentResponse, status_code=status.HTTP_201_CREATED)
 async def create_payment(
     request: PaymentCreateRequest,
-    http_request: Request,
     idempotency_key: IdempotencyKey,
     current_user: CurrentUserDependency,
     session: SessionDependency,
@@ -116,27 +111,25 @@ async def create_payment(
         order_id=request.order_id,
         idempotency_key=idempotency_key,
     )
+    checkout = build_toss_checkout(payment)
     logger.info(
         "Payment API created payment: payment_id=%s order_id=%s provider=%s checkout_provider=%s",
         payment.id,
         payment.order_id,
         payment.provider,
-        build_toss_checkout(payment, http_request).provider
-        if build_toss_checkout(payment, http_request)
-        else None,
+        checkout.provider if checkout else None,
     )
-    return build_payment_response(payment, checkout=build_toss_checkout(payment, http_request))
+    return build_payment_response(payment, checkout=checkout)
 
 
 @router.get("/payments/{payment_id}", response_model=PaymentResponse)
 async def read_payment(
     payment_id: UUID,
-    http_request: Request,
     current_user: CurrentUserDependency,
     session: SessionDependency,
 ) -> PaymentResponse:
     payment = await find_payment(session, current_user.id, payment_id)
-    return build_payment_response(payment, checkout=build_toss_checkout(payment, http_request))
+    return build_payment_response(payment, checkout=build_toss_checkout(payment))
 
 
 @router.post("/payments/toss/confirm", response_model=PaymentResponse)
@@ -170,7 +163,6 @@ async def confirm_toss(
 @router.post("/payments/{payment_id}/reconcile", response_model=PaymentResponse)
 async def reconcile(
     payment_id: UUID,
-    http_request: Request,
     current_user: CurrentUserDependency,
     session: SessionDependency,
     store: HoldStoreDependency,
@@ -183,7 +175,7 @@ async def reconcile(
         user_id=current_user.id,
         payment_id=payment_id,
     )
-    return build_payment_response(payment, checkout=build_toss_checkout(payment, http_request))
+    return build_payment_response(payment, checkout=build_toss_checkout(payment))
 
 
 @router.delete("/payments/{payment_id}", response_model=PaymentResponse)
