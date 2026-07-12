@@ -227,6 +227,9 @@ async def process_provider_event(
         return payment
     if event.status != ProviderPaymentStatus.APPROVED:
         raise payment_error("unsupported_payment_event", "처리할 수 없는 결제 이벤트입니다.", 409)
+    payment_id = payment.id
+    payment_provider_id = payment.provider_payment_id
+    order_id = order.id
     try:
         await confirm_reservation(
             session=session,
@@ -241,8 +244,12 @@ async def process_provider_event(
         await session.commit()
     except ApplicationError:
         await session.rollback()
+        payment = await session.get(Payment, payment_id)
+        order = await session.get(PaymentOrder, order_id)
+        if payment is None or order is None:
+            raise payment_error("payment_not_found", "결제 내역을 찾을 수 없습니다.", 404)
         try:
-            await provider.cancel_payment(payment.provider_payment_id)
+            await provider.cancel_payment(payment_provider_id)
             payment.status = PaymentStatus.REFUNDED
         except Exception:
             payment.status = PaymentStatus.COMPENSATION_PENDING
