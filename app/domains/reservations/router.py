@@ -5,6 +5,7 @@ from fastapi import APIRouter, Response, status
 
 from app.database.dependencies import SessionDependency
 from app.domains.accounts.dependencies import CurrentUserDependency
+from app.domains.payments.dependencies import PaymentProviderDependency
 from app.domains.reservations.availability import get_availability
 from app.domains.reservations.dependencies import HoldStoreDependency
 from app.domains.reservations.hold_service import (
@@ -127,9 +128,11 @@ async def delete_reservation(
     reservation_id: UUID,
     current_user: CurrentUserDependency,
     session: SessionDependency,
+    provider: PaymentProviderDependency,
 ) -> ReservationResponse:
     reservation = await cancel_reservation(
         session=session,
+        provider=provider,
         user_id=current_user.id,
         reservation_id=reservation_id,
     )

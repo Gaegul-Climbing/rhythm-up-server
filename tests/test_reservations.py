@@ -311,6 +311,7 @@ async def test_cancellation_is_rejected_within_24_hours(
     client: AsyncClient,
     db_session: AsyncSession,
     reservation_data: ReservationTestData,
+    payment_provider,
 ) -> None:
     headers = await create_member(client, "deadline")
     hold = await create_hold(client, headers, reservation_data)
@@ -328,6 +329,7 @@ async def test_cancellation_is_rejected_within_24_hours(
     with pytest.raises(ApplicationError) as captured:
         await cancel_reservation(
             session=db_session,
+            provider=payment_provider,
             user_id=user.id,
             reservation_id=reservation_id,
             now=start_utc - datetime.timedelta(hours=23),

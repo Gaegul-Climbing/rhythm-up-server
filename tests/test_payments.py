@@ -157,6 +157,32 @@ async def test_pending_payment_can_be_cancelled(
 
 
 @pytest.mark.asyncio
+async def test_paid_reservation_cancellation_refunds_payment(
+    client: AsyncClient,
+    db_session: AsyncSession,
+) -> None:
+    headers, _, order, payment = await create_order_and_payment(client, db_session)
+    completed = await client.post(
+        f"/mock-payment-provider/payments/{payment['id']}/complete",
+        headers=headers,
+        json={"outcome": "approved", "deliver_event": True},
+    )
+    assert completed.status_code == 200, completed.text
+    reservations = await client.get("/reservations", headers=headers)
+    reservation_id = reservations.json()[0]["id"]
+
+    cancelled = await client.delete(f"/reservations/{reservation_id}", headers=headers)
+
+    assert cancelled.status_code == 200, cancelled.text
+    assert cancelled.json()["status"] == "cancelled"
+    payment_response = await client.get(f"/payments/{payment['id']}", headers=headers)
+    order_response = await client.get(f"/payment-orders/{order['id']}", headers=headers)
+    assert payment_response.json()["status"] == "refunded"
+    assert order_response.json()["status"] == "cancelled"
+    assert await db_session.scalar(select(func.count()).select_from(PaymentEvent)) == 2
+
+
+@pytest.mark.asyncio
 async def test_mock_completion_is_disabled_when_toss_is_active(
     client: AsyncClient,
     db_session: AsyncSession,

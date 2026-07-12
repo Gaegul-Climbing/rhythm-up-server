@@ -10,6 +10,15 @@ from app.core.config import get_settings
 from app.core.errors import ApplicationError
 from app.core.time import load_timezone
 from app.domains.branches.service import find_bookable_room
+from app.domains.payments.models import (
+    PaymentEvent,
+    PaymentOrder,
+    PaymentOrderStatus,
+    PaymentStatus,
+)
+from app.domains.payments.providers.base import PaymentProvider, ProviderPaymentStatus
+from app.domains.payments.providers.toss import TossPaymentProviderError
+from app.domains.payments.repository import get_payment_for_order
 from app.domains.reservations.availability import rule_error
 from app.domains.reservations.hold_service import (
     get_user_hold,
@@ -138,6 +147,7 @@ async def find_user_reservation(
 async def cancel_reservation(
     *,
     session: AsyncSession,
+    provider: PaymentProvider,
     user_id: UUID,
     reservation_id: UUID,
     now: datetime.datetime | None = None,
@@ -159,9 +169,94 @@ async def cancel_reservation(
             status_code=409,
         )
 
+    await refund_reservation_payment(session=session, provider=provider, reservation=reservation)
     await delete_reservation_slots(session, reservation.id)
     reservation.status = ReservationStatus.CANCELLED
     reservation.cancelled_at = utc_now
-    await session.commit()
+    try:
+        await session.commit()
+    except Exception as error:
+        await session.rollback()
+        logger.exception(
+            "Reservation cancellation state was not persisted after provider refund",
+            extra={"reservation_id": reservation.id},
+        )
+        raise ApplicationError(
+            code="reservation_cancellation_reconciliation_required",
+            message="결제 취소 후 예약 상태를 저장하지 못했습니다. 관리자 확인이 필요합니다.",
+            status_code=503,
+        ) from error
     await session.refresh(reservation)
     return reservation
+
+
+async def refund_reservation_payment(
+    *,
+    session: AsyncSession,
+    provider: PaymentProvider,
+    reservation: Reservation,
+) -> None:
+    if reservation.payment_order_id is None:
+        return
+
+    payment = await get_payment_for_order(session, reservation.payment_order_id)
+    order = await session.get(PaymentOrder, reservation.payment_order_id)
+    if payment is None or order is None:
+        raise ApplicationError(
+            code="reservation_payment_not_found",
+            message="예약에 연결된 결제 정보를 찾을 수 없습니다.",
+            status_code=409,
+        )
+    if payment.status == PaymentStatus.REFUNDED:
+        return
+    if payment.status != PaymentStatus.APPROVED:
+        raise ApplicationError(
+            code="reservation_payment_not_refundable",
+            message="승인된 결제만 예약 취소와 함께 환불할 수 있습니다.",
+            status_code=409,
+        )
+
+    try:
+        refunded = await provider.cancel_payment(payment.provider_payment_id)
+    except TossPaymentProviderError as error:
+        raise ApplicationError(
+            code=error.code,
+            message=error.message,
+            status_code=error.status_code,
+        ) from error
+    except Exception as error:
+        logger.exception(
+            "Reservation payment refund failed",
+            extra={"reservation_id": reservation.id, "payment_id": payment.id},
+        )
+        raise ApplicationError(
+            code="reservation_payment_refund_failed",
+            message="결제 취소에 실패해 예약을 취소할 수 없습니다.",
+            status_code=502,
+        ) from error
+
+    if refunded.status != ProviderPaymentStatus.CANCELLED:
+        raise ApplicationError(
+            code="reservation_payment_refund_incomplete",
+            message="결제 취소가 완료되지 않아 예약을 취소할 수 없습니다.",
+            status_code=502,
+        )
+
+    payment.status = PaymentStatus.REFUNDED
+    payment.failure_code = None
+    order.status = PaymentOrderStatus.CANCELLED
+    session.add(
+        PaymentEvent(
+            payment_id=payment.id,
+            provider=provider.name,
+            provider_event_id=f"reservation-refund:{reservation.id}",
+            event_type="payment.refunded",
+            payload={
+                "reservation_id": str(reservation.id),
+                "payment_id": refunded.id,
+                "order_id": str(refunded.order_id),
+                "amount": refunded.amount,
+                "status": refunded.status.value,
+            },
+        )
+    )

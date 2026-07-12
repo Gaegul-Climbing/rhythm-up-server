@@ -224,6 +224,8 @@ GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙
 
 워크플로우별 실행 조건, job 구성, 이미지 태그, GitHub 설정, 장애 대응은 [CI/CD 자동화 가이드](docs/ci-cd.md)에서 확인할 수 있습니다.
 
+유료 예약의 취소 기한과 결제 취소 상태 전이는 [예약 취소와 환불 정책](docs/payment-cancellation-policy.md)에서 확인할 수 있습니다.
+
 현재 구성된 자동화:
 
 - `.github/workflows/ci.yml`: PR과 `main` push에서 lint, test, integration test, Docker build 검증
