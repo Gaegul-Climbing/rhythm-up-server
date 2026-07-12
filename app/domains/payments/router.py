@@ -5,6 +5,7 @@ from uuid import UUID
 from fastapi import APIRouter, Header, status
 
 from app.core.config import get_settings
+from app.core.errors import ApplicationError
 from app.database.dependencies import SessionDependency
 from app.domains.accounts.dependencies import CurrentUserDependency
 from app.domains.payments.dependencies import (
@@ -208,6 +209,12 @@ async def complete_mock_payment(
     store: HoldStoreDependency,
     provider: ControllablePaymentProviderDependency,
 ) -> MockPaymentCompleteResponse:
+    if get_settings().payment_provider != "local":
+        raise ApplicationError(
+            code="mock_payment_provider_disabled",
+            message="로컬 결제 provider에서만 사용할 수 있습니다.",
+            status_code=404,
+        )
     payment = await find_payment(session, current_user.id, payment_id)
     outcome = ProviderPaymentStatus(request.outcome.value)
     event = await provider.complete_payment(payment.provider_payment_id, outcome)

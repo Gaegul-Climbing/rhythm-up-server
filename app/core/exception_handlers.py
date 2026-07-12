@@ -12,6 +12,17 @@ from app.core.errors import ApplicationError
 logger = logging.getLogger(__name__)
 
 
+def safe_validation_details(errors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "loc": item.get("loc", ()),
+            "type": item.get("type", "validation_error"),
+            "msg": item.get("msg", "요청 값이 올바르지 않습니다."),
+        }
+        for item in errors
+    ]
+
+
 def error_response(
     *,
     status_code: int,
@@ -58,17 +69,18 @@ def register_exception_handlers(application: FastAPI) -> None:
         request: Request,
         exception: RequestValidationError,
     ) -> JSONResponse:
+        details = safe_validation_details(exception.errors())
         logger.warning(
             "Validation error: method=%s path=%s errors=%s",
             request.method,
             request.url.path,
-            exception.errors(),
+            details,
         )
         return error_response(
             status_code=422,
             code="validation_error",
             message="요청 값이 올바르지 않습니다.",
-            details=exception.errors(),
+            details=details,
         )
 
     @application.exception_handler(StarletteHTTPException)

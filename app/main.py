@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.api.router import api_router
+from app.core.config import get_settings
 from app.core.exception_handlers import register_exception_handlers
 from app.core.lifespan import lifespan
 from app.web.router import WEB_ROOT
@@ -9,6 +10,8 @@ from app.web.router import router as web_router
 
 
 def create_app() -> FastAPI:
+    settings = get_settings()
+    settings.validate_runtime_settings()
     application = FastAPI(
         title="리듬업 연습실 API",
         version="0.1.0",

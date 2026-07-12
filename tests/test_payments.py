@@ -157,34 +157,57 @@ async def test_pending_payment_can_be_cancelled(
 
 
 @pytest.mark.asyncio
+async def test_mock_completion_is_disabled_when_toss_is_active(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with monkeypatch.context() as context:
+        context.setenv("PAYMENT_PROVIDER", "toss")
+        get_settings.cache_clear()
+        headers, _, _, payment = await create_order_and_payment(client, db_session)
+
+        response = await client.post(
+            f"/mock-payment-provider/payments/{payment['id']}/complete",
+            headers=headers,
+            json={"outcome": "approved", "deliver_event": True},
+        )
+
+        assert response.status_code == 404
+        assert response.json()["error"]["code"] == "mock_payment_provider_disabled"
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
 async def test_toss_checkout_urls_use_configured_public_urls(
     client: AsyncClient,
     db_session: AsyncSession,
     payment_provider,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("TOSS_PAYMENTS_SUCCESS_URL", "https://rhythm-up.example/success")
-    monkeypatch.setenv("TOSS_PAYMENTS_FAIL_URL", "https://rhythm-up.example/fail")
-    get_settings.cache_clear()
-    payment_provider.name = "toss"
-    headers, hold = await setup_member_room(client, db_session, suffix="toss-url")
-    order = await client.post(
-        "/payment-orders",
-        headers={**headers, "Idempotency-Key": "toss-url-order"},
-        json={"hold_id": hold["id"]},
-    )
-    payment = await client.post(
-        "/payments",
-        headers={
-            **headers,
-            "Idempotency-Key": "toss-url-payment",
-            "Host": "127.0.0.1:8000",
-        },
-        json={"order_id": order.json()["id"]},
-    )
+    with monkeypatch.context() as context:
+        context.setenv("TOSS_PAYMENTS_SUCCESS_URL", "https://rhythm-up.example/success")
+        context.setenv("TOSS_PAYMENTS_FAIL_URL", "https://rhythm-up.example/fail")
+        get_settings.cache_clear()
+        payment_provider.name = "toss"
+        headers, hold = await setup_member_room(client, db_session, suffix="toss-url")
+        order = await client.post(
+            "/payment-orders",
+            headers={**headers, "Idempotency-Key": "toss-url-order"},
+            json={"hold_id": hold["id"]},
+        )
+        payment = await client.post(
+            "/payments",
+            headers={
+                **headers,
+                "Idempotency-Key": "toss-url-payment",
+                "Host": "127.0.0.1:8000",
+            },
+            json={"order_id": order.json()["id"]},
+        )
 
-    assert payment.status_code == 201, payment.text
-    checkout = payment.json()["checkout"]
-    assert checkout["success_url"] == "https://rhythm-up.example/success"
-    assert checkout["fail_url"] == "https://rhythm-up.example/fail"
+        assert payment.status_code == 201, payment.text
+        checkout = payment.json()["checkout"]
+        assert checkout["success_url"] == "https://rhythm-up.example/success"
+        assert checkout["fail_url"] == "https://rhythm-up.example/fail"
     get_settings.cache_clear()
