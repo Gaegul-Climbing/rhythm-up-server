@@ -229,6 +229,6 @@ GitHub Actions, Release Please, GHCR 이미지 릴리즈 자동화는 이 규칙
 현재 구성된 자동화:
 
 - `.github/workflows/ci.yml`: PR과 `main` push에서 lint, test, integration test, Docker build 검증
-- `.github/workflows/release-please.yml`: `main` push 후 Conventional Commit 기반 Release PR 생성
-- `.github/workflows/docker-release.yml`: GitHub Release 발행 시 GHCR 이미지 push
+- `.github/workflows/release-please.yml`: Release PR 관리와 Release 생성 후 GHCR 이미지 push
+- `.github/workflows/docker-release.yml`: 기존 Git tag의 GHCR 이미지를 수동 재발행하는 복구 경로
 - `.github/dependabot.yml`: GitHub Actions, Python, Docker 의존성 업데이트 PR 생성

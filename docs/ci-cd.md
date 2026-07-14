@@ -13,8 +13,8 @@ main 브랜치에 push
 └→ Release Please: Conventional Commit 분석, Release PR 생성·갱신
 
 Release PR 병합
-→ GitHub Release와 버전 tag 발행
-→ Docker Release: GHCR에 컨테이너 이미지 push
+→ Release Please가 GitHub Release와 버전 tag 발행
+→ 같은 workflow 실행에서 GHCR에 컨테이너 이미지 push
 
 Dependabot 정기 실행
 → 의존성 업데이트 PR 생성
@@ -28,8 +28,8 @@ Dependabot 정기 실행
 | 파일 | 실행 조건 | 하는 일 |
 | --- | --- | --- |
 | [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) | PR 생성·갱신, `main` push | 코드와 컨테이너 이미지가 정상적으로 만들어지는지 검증합니다. |
-| [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | `main` push | 커밋 타입을 읽어 Release PR을 생성하거나 갱신합니다. Release PR 병합 시 GitHub Release를 발행합니다. |
-| [`.github/workflows/docker-release.yml`](../.github/workflows/docker-release.yml) | GitHub Release `published` | 애플리케이션 이미지를 빌드하고 GHCR에 배포합니다. |
+| [`.github/workflows/release-please.yml`](../.github/workflows/release-please.yml) | `main` push | Release PR을 관리하고, Release PR 병합 시 GitHub Release 발행과 GHCR 이미지 push를 같은 실행에서 처리합니다. |
+| [`.github/workflows/docker-release.yml`](../.github/workflows/docker-release.yml) | 수동 실행 또는 사용자가 직접 발행한 GitHub Release | 기존 Git tag의 이미지를 재발행하거나 이미지 발행 실패를 복구합니다. |
 | [`.github/dependabot.yml`](../.github/dependabot.yml) | 매주 월요일 지정 시각 | GitHub Actions, Python, Docker 의존성의 업데이트 PR을 생성합니다. |
 | [`release-please-config.json`](../release-please-config.json) | Release Please 실행 시 | Python 릴리즈 방식, 패키지 표시 이름, CHANGELOG 경로를 정의합니다. |
 | [`.release-please-manifest.json`](../.release-please-manifest.json) | Release Please 실행 시 | 마지막 릴리즈 버전을 기록해 다음 버전 계산의 기준으로 사용합니다. |
@@ -48,7 +48,9 @@ Dependabot 정기 실행
 
 ## 컨테이너 이미지 배포
 
-GitHub Release가 발행되면 `docker-release.yml`은 `GITHUB_TOKEN`으로 GitHub Container Registry(`ghcr.io`)에 로그인합니다. 별도 PAT이나 Docker Hub 계정은 필요하지 않습니다.
+Release Please가 새 Release를 만든 경우 `release-please.yml`의 후속 단계가 같은 실행 안에서 `GITHUB_TOKEN`으로 GitHub Container Registry(`ghcr.io`)에 로그인하고 이미지를 push합니다. 별도 PAT이나 Docker Hub 계정은 필요하지 않습니다.
+
+Release Please가 기본 `GITHUB_TOKEN`으로 만든 Release 이벤트는 별도의 workflow를 다시 실행하지 않습니다. 따라서 이미지 발행을 `release: published` 이벤트에만 의존하지 않고 Release Please의 `release_created` 출력에 연결합니다. `docker-release.yml`은 이미 존재하는 Git tag를 다시 발행하기 위한 수동 복구 경로로 유지합니다.
 
 현재 이미지 이름은 다음과 같습니다.
 
@@ -107,9 +109,10 @@ docker compose --profile test down
 | `Action required` / `Awaiting approval` | 봇·외부 기여자 PR에 대한 보안 승인 대기입니다. 변경 내용을 확인한 뒤 `Approve and run`을 누르거나 조직의 PR workflow 승인 정책을 조정합니다. |
 | Dependabot PR 여러 개 | 첫 검사나 정기 검사에서 각각의 의존성 업데이트가 PR로 생성된 상태입니다. CI 통과 여부를 확인한 뒤 하나씩 병합합니다. |
 | Docker Release 실패 | GitHub Actions의 `packages: write` 권한, 조직의 `GITHUB_TOKEN` 정책, GHCR 패키지 권한을 먼저 확인합니다. |
+| GitHub Release는 있지만 GHCR 이미지가 없음 | `Docker Release` workflow를 수동 실행하고 해당 Git tag를 입력해 이미지를 재발행합니다. |
 
 ## 운영 원칙
 
 - 실제 Toss Payments 키, 운영 DB 비밀번호, 운영 JWT secret은 Git에 커밋하거나 CI 로그에 출력하지 않습니다.
 - Dependabot과 Release Please가 만든 PR도 변경 내용과 CI 결과를 확인한 뒤 병합합니다.
-- CI는 검증만, Docker Release는 GitHub Release 이후의 이미지 배포만 담당합니다. 실제 서버 배포는 아직 자동화하지 않습니다.
+- CI는 검증을 담당하고, Release Please workflow는 Release 생성과 이미지 배포를 연속으로 처리합니다. `Docker Release`는 수동 복구 경로입니다.

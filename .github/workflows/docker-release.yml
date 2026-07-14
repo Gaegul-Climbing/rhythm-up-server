@@ -1,6 +1,12 @@
 name: Docker Release
 
 on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to publish, for example rhythm-up-server-v0.2.0
+        required: true
+        default: rhythm-up-server-v0.2.0
   release:
     types:
       - published
@@ -12,6 +18,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: gaegul-climbing/rhythm-up-server
+  RELEASE_TAG: ${{ inputs.tag || github.event.release.tag_name }}
 
 jobs:
   publish-image:
@@ -21,6 +28,22 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Resolve image version
+        id: version
+        shell: bash
+        env:
+          TAG_NAME: ${{ env.RELEASE_TAG }}
+        run: |
+          version="${TAG_NAME#rhythm-up-server-v}"
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Unsupported release tag: $TAG_NAME" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "minor=${version%.*}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -38,8 +61,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.version.outputs.version }}
+            type=raw,value=${{ steps.version.outputs.minor }}
             type=raw,value=latest
 
       - name: Build and push
