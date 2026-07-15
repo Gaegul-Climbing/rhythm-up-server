@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.3](https://github.com/Gaegul-Climbing/rhythm-up-server/compare/rhythm-up-server-v0.2.2...rhythm-up-server-v0.2.3) (2026-07-15)
+
+
+### Bug Fixes
+
+* health 처리 수정 ([92a6073](https://github.com/Gaegul-Climbing/rhythm-up-server/commit/92a60739ff6cce9a184429a3171112ecc33af0c9))
+
 ## [0.2.2](https://github.com/Gaegul-Climbing/rhythm-up-server/compare/rhythm-up-server-v0.2.1...rhythm-up-server-v0.2.2) (2026-07-14)
 
 
